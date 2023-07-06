@@ -1,0 +1,69 @@
+1)
+Se filtra la siguiente información:
+-created_at: fecha y hora en la que se ha publicado el tweet, por ejemplo, "2022-12-14T00:52:57.000Z"
+-lang: idioma, por ejemplo, "en" (english)
+-id: número identificativo del usuario que ha publicado el tweet, por ejemplo "253712835"
+-screen_name: nombre en twitter del usuario
+-followers_count: número de seguidores del usuario que publica el tweet
+-following_count: número de usuarios a los que sigue el usuario que publica el tweet
+
+Ejemplo de tweet:
+{"created_at":"2022-12-14T00:52:57.000Z","text":"May BSP Kanroji headgear HQ Production Images: https:\/\/t.co\/S59KrWUXLr","lang":"en","user":{"screen_name":"Baggie_Saiyan","following_count":169,"followers_count":9724,"id":"253712835"}}
+
+2)
+
+import java.util.HashMap; -> implementa la función "map" de java, similar al "map" de spark, permite trabajar en formato clave-valor, se                                  trata de una implementación particular de la interfaz "map" que aparece a continuación
+import java.util.Map;
+
+import org.apache.flume.Context; -> permite almacenar tuplas clave-valor utilizadas para pasar información de configuración a través del                                         sistema.
+import org.apache.flume.Event; -> en flume los eventos son la representación básica de los objetos; este entorno provee acceso a datos que                                     están circulando por el sistema
+import org.apache.flume.EventDrivenSource; -> permite definir sources que no necesitan un controlador externo para buscar eventos
+import org.apache.flume.channel.ChannelProcessor; -> gestiona las operaciones permitiendo transferir eventos a los canales
+import org.apache.flume.conf.Configurable; -> permite configurar clases ya implementadas
+import org.apache.flume.event.EventBuilder; -> junto con .withBody() permite transferir eventos de twitter a flume
+import org.apache.flume.source.AbstractSource; -> se trata de una clase que permite definir distintos tipos de source como NetcatSource o                                                     AvroSource
+import org.slf4j.Logger; -> "Simple Logging Facade For Java"; proporciona una abstracción de todos los entornos de trabajo "logging"
+import org.slf4j.LoggerFactory; 
+
+import java.text.SimpleDateFormat; -> permite transformar fechas según la estructura deseada; "yyyy-MM-dd'T'HH:mm:ss.SSS'Z'" en este caso
+import java.util.Date; -> provee métodos para trabajar con fechas y horas en java
+import java.text.DateFormat; -> similar a SimpleDateFormat pero no tiene "locale-support", es decir, no tiene en cuenta las preferencias                                     locales en cuanto a alfabetos, orden de fechas, formato de números, etc.
+
+import org.apache.http.HttpEntity; -> permite trabajar con entidades que se pueden enviar o recibir con un mensaje HTTP
+import org.apache.http.HttpResponse; -> se implementa para que, después de recibir e interpretar un mensaje de solicitud, un servidor                                               responda con un mensaje de respuesta HTTP
+import org.apache.http.client.HttpClient; -> permite enviar solicitudes y recuperar sus respuestas
+import org.apache.http.client.config.CookieSpecs; -> especifiaciones estándar de las cookies
+import org.apache.http.client.config.RequestConfig; -> clase que incluye elementos de configuración
+import org.apache.http.client.methods.HttpGet; -> permite recuperar información del servidor
+import org.apache.http.client.utils.URIBuilder; -> permite generar instancias URI ("Uniform Resource Identifier")
+import org.apache.http.impl.client.HttpClients;
+
+import java.io.BufferedReader; -> leer texto de un stream de caracteres de forma eficiente
+import java.io.IOException; -> señalar cuándo una operación I/O ("Input/Output") ha fallado o ha sido interrumpida
+import java.io.InputStreamReader; -> permite transformar streams de tipo byte a streams de tipo character
+import java.net.URISyntaxException; -> lanza una excepción para indicar que un string no ha podido ser analizado como una referencia URI
+
+import java.time.LocalDateTime; -> implementar la hora y fecha locales
+import java.time.ZoneId; -> proporciona un identificador de la zona geográfica
+import java.time.ZonedDateTime; -> proporciona una representación fecha-hora junto a zona geográfica
+
+//Libraries to modify JSON
+import org.json.simple.JSONObject; -> permite definir objetos de tipo json
+import org.json.simple.JSONArray; -> permite definir arrays de tipo json
+import org.json.simple.parser.ParseException; -> explica dónde y por qué se produce el error en el texto JSON
+import org.json.simple.parser.JSONParser; -> parsear texto JSON
+
+-----
+
+Requiere las librerías java:
+
+java.util
+java.text
+java.io
+java.net
+java.time
+
+3)
+En primer lugar, dado que los streams de tweets contienen información variada, deberíamos modificar el filtrado para obtener únicamente información que nos sirva para lo que queremos analizar, en este caso, "followers_count", "following_count" y "screen_name" principalmente. Dado que los streams son de tipo json deberemos utilizar alguna funcionalidad como json.loads para procesarlos. Una opción interesante para analizar las relaciones sociales es trabajar con grafos por lo que una idea podría ser transformar los streams para que puedan ser aplicados a la librería Graphframes. Así, una opción podría ser recoger los tweets que se quieran analizar y crear dataframes a partir de estos.
+Si queremos observar la evolución de seguidores de un único usuario una librería útil podría ser Pandas ya que permitiría representar
+gráficamente esta información.
