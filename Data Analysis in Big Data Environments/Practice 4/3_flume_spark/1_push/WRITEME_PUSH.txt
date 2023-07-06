@@ -1,0 +1,33 @@
+1)
+Dado que queremos recibir streams de twitter, en primer lugar se ha definido un source llamado "twitter". Estos streams llegan a los canales "c1" y "c2" y vierten su contenido en los sinks "avroSink" y "sk2". El source es de tipo com.cloudera.flume.source.TwitterSource y se conecta a los canales "c1" y "c2". Los canales son de tipo memoria y tienen una capacidad asignada de 6912212 bytes. Cada uno se conecta a un sink por separado (recordemos que dos canales no pueden converger en un único sink), el c1 a avroSink y el c2 a sk2. El sink "avroSink" es de tipo avro y el sink "sk2" es de tipo HDFS.
+
+2)
+# SOURCE CONFIGURATION
+# --------------------------------
+TwitterAgent.sources.twitter.type = com.cloudera.flume.source.TwitterSource -> indicamos que flume lea desde twitter
+TwitterAgent.sources.twitter.channels = c1 c2 -> conectamos el source a los canales c1 y c2
+TwitterAgent.sources.twitter.BEARER_TOKEN = AAAAAAAAAAAAAAAAAAAAAHoDkQEAAAAANewyBhO86oYNdADIDt9JStiI3oc%3D3mau4l6CtW4uxwmvK5i1jmvFQ1L5WVdom7yBYRgIaVDuTDt8yP -> contraseña proporcionada por twitter
+TwitterAgent.sources.twitter.READ_LIMIT = 20 -> queremos obtener 20 tweets
+
+# CHANNEL CONFIGURATION
+# --------------------------------
+# Teneis que fijar el atributo byte capacity a 6912212
+TwitterAgent.channels.c1.type = memory -> guardamos los eventos recogidos en un canal de tipo memoria
+TwitterAgent.channels.c1.byteCapacity = 6912212 -> máximo de bytes permitidos en memoria teniendo en cuenta todos los eventos recogidos
+TwitterAgent.channels.c2.type = memory
+TwitterAgent.channels.c2.byteCapacity = 6912212
+
+# SINK CONFIGURATION
+# --------------------------------
+TwitterAgent.sinks.avroSink.type = avro -> creamos un sink de tipo avro para poder enviar los datos recogidos al puerto asignado
+TwitterAgent.sinks.avroSink.channel = c1 -> utlizamos el canal c1 para conectar el sink
+TwitterAgent.sinks.avroSink.hostname = localhost -> los streams se envían al puerto 20216
+TwitterAgent.sinks.avroSink.port = 20216
+
+TwitterAgent.sinks.sk2.type = hdfs -> creamos un sink de tipo hdfs para poder guardar los datos recogidos en hdfs y posteriormente copiarlos al directorio del ejercicio mediante "hdfs dfs -copyToLocal tweets_act_3_push /home/vripollr/sgraul/PEC4_vripollr/PEC4/3_flume_spark/1_push"
+TwitterAgent.sinks.sk2.channel = c2 -> utilizamos el canal c2 para conectar el sink
+TwitterAgent.sinks.sk2.hdfs.path = hdfs://Cloudera01/user/vripollr/tweets_act_3_push/%y/%m/%d/%H -> creamos la jerarquía de carpetas que pide el ejercicio (year/month/day/hour)
+TwitterAgent.sinks.sk2.hdfs.fileType = DataStream -> especificamos el tipo de stream y de escritura
+TwitterAgent.sinks.sk2.hdfs.writeFormat = Text
+TwitterAgent.sinks.sk2.hdfs.rollCount = 1 -> de esta forma cada archivo .tmp es transformado en un archivo de texto de forma que al final de
+la ejecución se obtienen exactamente 20 tweets que pueden ser leídos fácilmente desde hdfs (si no se añade esta línea se obtienen 10 de texto y 10 .tmp)

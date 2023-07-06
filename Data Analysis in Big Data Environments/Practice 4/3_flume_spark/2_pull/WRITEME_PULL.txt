@@ -1,0 +1,43 @@
+1)
+Dado que queremos recibir streams de twitter, en primer lugar se ha definido un source llamado "twitter". Estos streams llegan a los canales "c1" y "c2" y vierten su contenido en los sinks "spark" y "sk2". El source es de tipo com.cloudera.flume.source.TwitterSource y se conecta a los canales "c1" y "c2". Los canales son de tipo memoria y tienen una capacidad asignada de 6912212 bytes. Cada uno se conecta a un sink por separado (recordemos que dos canales no pueden converger en un único sink), el "c1" a "spark" y el "c2" a "sk2". El sink "spark" es de tipo org.apache.spark.streaming.flume.sink.SparkSink y el sink "sk2" es de tipo HDFS. El sink tiene un comportamiento diferente respecto al "avroSink" del ejercicio push. El sink específico de spark permite hacer pull, lo que significa que es spark streaming el que realiza la comunicación de forma periódica para obtener los datos. En el ejercicio anterior se hacía push, lo que significa que el agente flume envía a spark streaming los datos una vez están disponibles.
+
+2)
+# SOURCE CONFIGURATION
+# --------------------------------
+TwitterAgent.sources.twitter.type = com.cloudera.flume.source.TwitterSource -> indicamos que flume lea desde twitter
+TwitterAgent.sources.twitter.channels = c1 c2 -> conectamos el source a los canales c1 y c2
+TwitterAgent.sources.twitter.BEARER_TOKEN = AAAAAAAAAAAAAAAAAAAAAHoDkQEAAAAANewyBhO86oYNdADIDt9JStiI3oc%3D3mau4l6CtW4uxwmvK5i1jmvFQ1L5WVdom7yBYRgIaVDuTDt8yP
+TwitterAgent.sources.twitter.READ_LIMIT = 20 -> queremos obtener 20 tweets
+
+# CHANNEL CONFIGURATION
+# --------------------------------
+# Teneis que fijar el atributo byte capacity a 6912212 -> guardamos los eventos recogidos en un canal de tipo memoria
+TwitterAgent.channels.c1.type = memory -> máximo de bytes permitidos en memoria teniendo en cuenta todos los eventos recogidos
+TwitterAgent.channels.c1.byteCapacity = 6912212
+TwitterAgent.channels.c2.type = memory
+TwitterAgent.channels.c2.byteCapacity = 6912212
+
+# SINK CONFIGURATION
+# --------------------------------
+TwitterAgent.sinks.spark.type = org.apache.spark.streaming.flume.sink.SparkSink -> sink específico de spark que permite hacer pull
+TwitterAgent.sinks.spark.channel = c1 -> utlizamos el canal c1 para conectar el sink
+TwitterAgent.sinks.spark.hostname = localhost -> los streams se envían al puerto 20216
+TwitterAgent.sinks.spark.port = 20216
+
+TwitterAgent.sinks.sk2.type = hdfs creamos un sink de tipo hdfs para poder guardar los datos recogidos en hdfs y posteriormente copiarlos al directorio del ejercicio mediante "hdfs dfs -copyToLocal tweets_act_3_pull /home/vripollr/sgraul/PEC4_vripollr/PEC4/3_flume_spark/2_pull"
+TwitterAgent.sinks.sk2.channel = c2 -> utilizamos el canal c2 para conectar el sink
+TwitterAgent.sinks.sk2.hdfs.path = hdfs://Cloudera01/user/vripollr/tweets_act_3_pull/%y/%m/%d/%H -> creamos la jerarquía de carpetas que pide el ejercicio (year/month/day/hour)
+TwitterAgent.sinks.sk2.hdfs.fileType = DataStream -> especificamos el tipo de stream y de escritura
+TwitterAgent.sinks.sk2.hdfs.writeFormat = Text
+TwitterAgent.sinks.sk2.hdfs.rollCount = 1 -> de esta forma cada archivo .tmp es transformado en un archivo de texto de forma que al final de
+la ejecución se obtienen exactamente 20 tweets que pueden ser leídos fácilmente desde hdfs (si no se añade esta línea se obtienen 10 de texto y 10 .tmp)
+
+3)
+El modelo pull suele considerarse menos eficiente porque el sink puede que realice consultas innecesarias al source, especialmente si
+los datos no están preparados [1]. Existen parámetros en algunos entornos para controlar este problema pero son demasiado sofisticados para un ejercicio introductorio como el de la práctica [2]. Sin embargo, el modelo pull puede considerarse más fiable porque los eventos son guardados en el buffer del sink hasta que son recibidos, replicados y admitidos por spark streaming. Otra ventaja del modelo pull es que si hubiera varios sinks cada uno podría solicitar información en ritmos diferentes ya que es cada sink el que decide cuándo y cómo hacerlo. Para un ejercicio introductorio como el de la práctica es suficiente que los sinks reciban al mismo ritmo. En este sentido el modelo push funcionaría mejor.
+El modelo push sería menos eficiente en escenarios en los que la cantidad de sinks fuera muy elevada ya que la responsabilidad de enviar los datos sería exclusiva del source lo que supondría un trabajo excesivo. En un modelo pull la carga de trabajo se distribuiría entre los consumidores.
+Para saber qué tipo de modelo se adapta mejor al ejercicio realizado debemos preguntarnos si nos conviene que el agente flume envíe los datos cuando los tiene disponibles (push) o si es preferible que el sink de spark recoja los datos de forma periódica (pull). Personalmente
+realizando el ejercicio he tenido menos problemas con push porque de este modo spark recibe los datos una vez están preparados de flume, lo único que hay que tener en cuenta es que la tarea de spark se ha de ejecutar primero para evitar problemas de sincronización. Por otra parte el nivel de sofisticación es menor en el modelo push lo que facilita la introducción al contenido.
+
+[1] https://stackoverflow.com/questions/39586635/why-is-kafka-pull-based-instead-of-push-based
+[2] https://kafka.apache.org/documentation.html#design_pull
